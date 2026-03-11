@@ -15,11 +15,11 @@
     return audio;
   }
 
-  const introAudio = createAudio("/universfield-cartoon-running-footsteps-250962.mp3", 0.35, true);
+  const introAudio = createAudio("universfield-cartoon-running-footsteps-250962.mp3", 0.35, true);
 
-  const revealAudio = createAudio("/studiokolomna-whoosh-transitions-sfx-01-118227.mp3", 0.7, false);
-  const retailClickAudio = createAudio("/floraphonic-ambient-metal-whoosh-2-174462.mp3", 0.85, false);
-  const wholesaleClickAudio = createAudio("/floraphonic-cute-character-wee-1-188162.mp3", 0.85, false);
+  const revealAudio = createAudio("studiokolomna-whoosh-transitions-sfx-01-118227.mp3", 0.7, false);
+  const retailClickAudio = createAudio("floraphonic-ambient-metal-whoosh-2-174462.mp3", 0.85, false);
+  const wholesaleClickAudio = createAudio("floraphonic-cute-character-wee-1-188162.mp3", 0.85, false);
 
   let startedAudio = false;
   let revealTriggered = false;

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Nova Market | Wholesale</title>
-  <meta http-equiv="refresh" content="0; url=/shopping-website/?mode=wholesale" />
+  <meta http-equiv="refresh" content="0; url=shopping-website/?mode=wholesale" />
   <link rel="stylesheet" href="welcome.css" />
   <style>
     @keyframes skeletonShimmer {
@@ -52,13 +52,13 @@
       <h1 id="wholesale-title">Loading wholesale storefront…</h1>
       <p class="subtitle">If nothing happens, use the button below.</p>
       <div class="actions">
-        <a class="choice wholesale" href="/shopping-website/?mode=wholesale">Open wholesale store</a>
-        <a class="choice retail" href="/">Back to welcome</a>
+        <a class="choice wholesale" href="shopping-website/?mode=wholesale">Open wholesale store</a>
+        <a class="choice retail" href="index.html">Back to welcome</a>
       </div>
     </section>
   </main>
   <script>
-    window.location.replace("/shopping-website/?mode=wholesale");
+    window.location.replace("shopping-website/?mode=wholesale");
     window.addEventListener("load", () => {
       const overlay = document.getElementById("skeletonOverlay");
       if (overlay) overlay.remove();
