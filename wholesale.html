@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nova Market | Wholesale</title>
+  <meta http-equiv="refresh" content="0; url=/shopping-website/?mode=wholesale" />
+  <link rel="stylesheet" href="welcome.css" />
+  <style>
+    @keyframes skeletonShimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    .skeleton-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: rgba(4, 10, 22, 0.92);
+      display: grid;
+      place-items: center;
+    }
+    .skeleton-panel {
+      width: min(720px, 90vw);
+      display: grid;
+      gap: 16px;
+    }
+    .skeleton-bar,
+    .skeleton-card {
+      border-radius: 14px;
+      background: linear-gradient(90deg, rgba(255,255,255,0.08), rgba(255,255,255,0.22), rgba(255,255,255,0.08));
+      background-size: 200% 100%;
+      animation: skeletonShimmer 1.2s ease-in-out infinite;
+    }
+    .skeleton-bar { height: 18px; }
+    .skeleton-bar.short { width: 40%; }
+    .skeleton-bar.medium { width: 65%; }
+    .skeleton-card { height: 140px; }
+  </style>
+</head>
+<body>
+  <div class="skeleton-overlay" id="skeletonOverlay" aria-hidden="true">
+    <div class="skeleton-panel">
+      <div class="skeleton-bar short"></div>
+      <div class="skeleton-bar medium"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+    </div>
+  </div>
+  <main class="welcome-shell">
+    <section class="welcome-card" aria-labelledby="wholesale-title">
+      <p class="eyebrow">WHOLESALE</p>
+      <h1 id="wholesale-title">Loading wholesale storefront…</h1>
+      <p class="subtitle">If nothing happens, use the button below.</p>
+      <div class="actions">
+        <a class="choice wholesale" href="/shopping-website/?mode=wholesale">Open wholesale store</a>
+        <a class="choice retail" href="/">Back to welcome</a>
+      </div>
+    </section>
+  </main>
+  <script>
+    window.location.replace("/shopping-website/?mode=wholesale");
+    window.addEventListener("load", () => {
+      const overlay = document.getElementById("skeletonOverlay");
+      if (overlay) overlay.remove();
+    });
+    window.setTimeout(() => {
+      const overlay = document.getElementById("skeletonOverlay");
+      if (overlay) overlay.remove();
+    }, 4000);
+  </script>
+</body>
+</html>

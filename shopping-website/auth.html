@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nova Market | Login & Sign Up</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;800&family=Bricolage+Grotesque:wght@600;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="auth.css" />
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+  <main class="auth-layout">
+    <section class="auth-hero">
+      <p class="kicker">NOVA MEMBER ACCESS</p>
+      <h1>Login or Create Your Account</h1>
+      <p>Access personalized shopping, saved carts, and local service bookings.</p>
+      <a href="index.html" class="back-link">Back to Shop</a>
+    </section>
+
+    <section class="auth-card">
+      <div class="auth-switch">
+        <button class="auth-tab active" id="loginTab" type="button">Login</button>
+        <button class="auth-tab" id="signupTab" type="button">Sign Up</button>
+      </div>
+
+      <div class="flip-scene">
+        <div class="flip-card" id="authFlipCard">
+          <form id="loginForm" class="auth-form auth-face auth-front">
+            <h3>Login</h3>
+            <label>
+              Email
+              <input type="email" id="loginEmail" placeholder="you@email.com" required />
+            </label>
+            <label>
+              Password
+              <input type="password" id="loginPassword" placeholder="Enter your password" required />
+            </label>
+            <button type="submit" class="submit-btn">Login</button>
+          </form>
+
+          <form id="signupForm" class="auth-form auth-face auth-back">
+            <h3>Create Account</h3>
+            <label>
+              Full Name
+              <input type="text" id="signupName" placeholder="Jane Doe" required />
+            </label>
+            <label>
+              Email
+              <input type="email" id="signupEmail" placeholder="you@email.com" required />
+            </label>
+            <label>
+              Password
+              <input type="password" id="signupPassword" placeholder="Create password" required />
+            </label>
+            <label>
+              Confirm Password
+              <input type="password" id="signupConfirm" placeholder="Confirm password" required />
+            </label>
+            <button type="submit" class="submit-btn">Create Account</button>
+          </form>
+        </div>
+      </div>
+
+      <p class="message" id="savedMessage">Success.</p>
+      <section class="session-card" id="sessionCard" aria-live="polite">
+        <p class="session-label">Current Session</p>
+        <p class="session-user" id="sessionUser">Not logged in</p>
+        <button type="button" class="logout-btn" id="logoutBtn">Logout</button>
+        <p class="profile-link-p"><a href="profile.html" class="profile-link">Your profile &rarr;</a></p>
+      </section>
+    </section>
+  </main>
+
+  <script src="../shared-api.js"></script>
+  <script src="auth.js"></script>
+</body>
+</html>

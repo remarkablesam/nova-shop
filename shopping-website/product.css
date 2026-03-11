@@ -1,0 +1,20 @@
+:root {
+  --bg: #f4efe7;
+  --ink: #1d1a17;
+  --muted: #5f564e;
+  --line: #d8cfc3;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Outfit, sans-serif; background: var(--bg); color: var(--ink); }
+.product-layout { width: min(820px, 92vw); margin: 30px auto; }
+.back-link { color: var(--ink); text-decoration: none; font-weight: 700; }
+.product-card { margin-top: 16px; background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 20px; }
+.kicker { margin: 0; font-size: 0.75rem; letter-spacing: 0.16em; font-weight: 700; color: #8f7962; }
+h1 { margin: 8px 0 8px; font-family: "Bricolage Grotesque", sans-serif; }
+.meta { margin: 0; color: var(--muted); font-weight: 600; }
+.description { color: #433a33; line-height: 1.45; }
+.pill-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0; }
+.pill { border: 1px solid var(--line); border-radius: 999px; padding: 6px 10px; font-size: 0.85rem; background: #fdf8f1; }
+.actions button { border: 1px solid var(--line); border-radius: 999px; padding: 10px 14px; cursor: pointer; background: #17120e; color: #fff; font-weight: 700; }
+.review-list { margin: 8px 0 0; padding-left: 18px; color: #433a33; }
+#message { margin-top: 10px; font-size: 0.9rem; }

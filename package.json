@@ -1,0 +1,15 @@
+{
+  "name": "nova-market",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Nova Market + AstraVault full-stack app",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --check server.js && node --check shared-api.js && node --check shopping-website/app.js && node --check shopping-website/assets.js && node --check shopping-website/admin.js && node --check shopping-website/admin-order.js && node --check shopping-website/profile.js && node --check shopping-website/product.js && node --check shopping-website/seller.js"
+  },
+  "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "express": "^4.21.2"
+  }
+}

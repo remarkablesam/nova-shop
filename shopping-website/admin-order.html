@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nova Market | Admin Order View</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;800&family=Bricolage+Grotesque:wght@600;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+  <main class="admin-layout">
+    <header class="admin-head">
+      <div>
+        <p class="kicker">ORDER DETAILS</p>
+        <h1 id="orderTitle">Order</h1>
+        <p id="orderMeta">Loading...</p>
+      </div>
+      <div class="head-actions">
+        <a href="admin.html" class="link-btn">Back to Admin</a>
+      </div>
+    </header>
+
+    <section class="panel">
+      <h2>Summary</h2>
+      <div id="summaryBox" class="list-wrap"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Items</h2>
+      <div id="itemsBox" class="list-wrap"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Tracking Timeline</h2>
+      <div id="trackingBox" class="list-wrap"></div>
+    </section>
+
+    <p id="pageMessage" aria-live="polite"></p>
+  </main>
+  <script src="../shared-api.js"></script>
+  <script src="admin-order.js"></script>
+</body>
+</html>

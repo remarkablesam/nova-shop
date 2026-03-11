@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nova Market | Admin Panel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;800&family=Bricolage+Grotesque:wght@600;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+  <main class="admin-layout">
+    <header class="admin-head">
+      <div>
+        <p class="kicker">ADMIN PANEL</p>
+        <h1>Nova Market Control Room</h1>
+        <p>Monitor users, orders, and wallet balances.</p>
+      </div>
+      <div class="head-actions">
+        <a href="index.html" class="link-btn">Back to Shop</a>
+        <button id="refreshBtn" type="button" class="action-btn">Refresh</button>
+      </div>
+    </header>
+
+    <section class="token-card">
+      <label for="adminToken">Admin Token (optional)</label>
+      <div class="token-row">
+        <input id="adminToken" type="password" placeholder="Enter token if server requires it" />
+        <button id="saveTokenBtn" type="button" class="action-btn">Save Token</button>
+      </div>
+      <p id="tokenHint">If `ADMIN_TOKEN` is not configured on the server, this can be left empty.</p>
+    </section>
+
+    <section class="stats-grid" id="statsGrid"></section>
+
+    <section class="action-row">
+      <button id="resetWalletsBtn" type="button" class="danger-btn">Reset All Wallets</button>
+      <p id="adminMessage" aria-live="polite">Ready</p>
+    </section>
+
+    <section class="panel">
+      <h2>Recent Orders</h2>
+      <div id="ordersList" class="list-wrap"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Service providers (trusted people)</h2>
+      <p class="panel-hint">Add service cards: name, photo, address, phone, active status. Users can rate them with stars on the Services tab.</p>
+      <form id="serviceProviderForm" class="admin-form">
+        <label>Name *</label>
+        <input type="text" id="spName" required placeholder="Full name" />
+        <label>Address</label>
+        <input type="text" id="spAddress" placeholder="Address" />
+        <label>Phone</label>
+        <input type="text" id="spPhone" placeholder="Phone number" />
+        <label>Photo</label>
+        <input type="file" id="spPhoto" accept="image/*" />
+        <div id="spPhotoPreview" class="sp-photo-preview hidden"></div>
+        <label class="checkbox-label"><input type="checkbox" id="spActive" checked /> Active</label>
+        <button type="submit" class="action-btn">Add provider</button>
+      </form>
+      <div id="serviceProvidersList" class="list-wrap"></div>
+    </section>
+
+    <section class="panel two-col">
+      <div>
+        <h2>All Users</h2>
+        <div id="usersList" class="list-wrap"></div>
+      </div>
+      <div>
+        <h2>Recent Waitlist</h2>
+        <div id="waitlistList" class="list-wrap"></div>
+      </div>
+    </section>
+
+    <section id="userDetailsModal" class="user-details-modal" hidden>
+      <div class="user-details-card">
+        <div class="user-details-head">
+          <h2 id="userDetailsTitle">Customer Details</h2>
+          <button type="button" id="closeUserDetailsBtn" class="action-btn">Close</button>
+        </div>
+        <p id="userDetailsMeta" class="panel-hint"></p>
+        <section class="panel user-details-panel">
+          <h2>Items Posted</h2>
+          <div id="userPostedItems" class="list-wrap"></div>
+        </section>
+        <section class="panel user-details-panel">
+          <h2>Buyer Transactions</h2>
+          <div id="userTransactions" class="list-wrap"></div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <script src="../shared-api.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>

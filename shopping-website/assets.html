@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nova Market | Assets Vault</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;800&family=Bricolage+Grotesque:wght@600;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets.css" />
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+  <main class="assets-layout">
+    <section class="assets-hero">
+      <p class="kicker">ASSET VAULT</p>
+      <h1>Store Local and Crypto Currency</h1>
+      <p>Deposit into your wallets and use those funds to buy goods and services across the marketplace.</p>
+      <a href="index.html" class="back-link">Back to Shop</a>
+      <a href="admin.html" class="back-link">Open Admin</a>
+    </section>
+
+    <section class="assets-card">
+      <div class="asset-grid">
+        <article class="asset-box">
+          <p>Naria Account</p>
+          <h2 id="localBalance">#0.00</h2>
+        </article>
+        <article class="asset-box">
+          <p>Crypto Wallet (USDC)</p>
+          <h2 id="cryptoBalance">$0.00</h2>
+        </article>
+      </div>
+      <button type="button" class="asset-btn subtle" id="resetWalletBtn">Reset Wallets</button>
+
+      <form id="depositForm" class="asset-form">
+        <h3>Deposit Funds</h3>
+        <label>
+          Deposit To
+          <select id="depositType">
+            <option value="local">Naria Account</option>
+            <option value="crypto">Crypto Wallet</option>
+          </select>
+        </label>
+        <label>
+          Amount
+          <input type="number" id="depositAmount" min="1" step="0.01" placeholder="100.00" required />
+        </label>
+        <button type="submit" class="asset-btn">Deposit</button>
+      </form>
+
+      <form id="withdrawForm" class="asset-form">
+        <h3>Withdraw Assets</h3>
+        <label>
+          Withdraw From
+          <select id="withdrawType">
+            <option value="local">Naria Account</option>
+            <option value="crypto">Crypto Wallet</option>
+          </select>
+        </label>
+        <label>
+          Withdraw To
+          <select id="withdrawDestination">
+            <option value="local_bank">Local Bank</option>
+            <option value="crypto_wallet">Crypto Wallet</option>
+          </select>
+        </label>
+        <label>
+          Amount
+          <input type="number" id="withdrawAmount" min="1" step="0.01" placeholder="59.99" required />
+        </label>
+        <button type="submit" class="asset-btn dark">Withdraw</button>
+      </form>
+
+      <p class="asset-message" id="assetMessage">Ready</p>
+      <section class="history">
+        <h3>Recent Purchases</h3>
+        <ul id="orderHistory"></ul>
+      </section>
+    </section>
+  </main>
+  <script src="../shared-api.js"></script>
+  <script src="assets.js"></script>
+</body>
+</html>

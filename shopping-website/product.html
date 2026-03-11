@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nova Market | Product</title>
+  <meta name="description" content="Product details, seller profile, reviews, and stock information." />
+  <meta property="og:title" content="Nova Market Product" />
+  <meta property="og:description" content="View product details and buy securely." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;800&family=Bricolage+Grotesque:wght@600;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="product.css" />
+</head>
+<body>
+  <main class="product-layout">
+    <a class="back-link" href="index.html">Back to Shop</a>
+    <section class="product-card">
+      <p class="kicker">PRODUCT DETAILS</p>
+      <h1 id="productName">Loading...</h1>
+      <p class="meta" id="productMeta"></p>
+      <p class="description" id="productDescription"></p>
+      <div class="pill-row">
+        <span class="pill" id="productIdPill">ID: -</span>
+        <span class="pill" id="productStockPill">Stock: -</span>
+      </div>
+      <div class="actions">
+        <button id="addWishlistBtn" type="button">Add to Wishlist</button>
+      </div>
+      <h3>Reviews</h3>
+      <ul id="reviewList" class="review-list"></ul>
+      <p id="message" aria-live="polite"></p>
+    </section>
+  </main>
+  <script src="../shared-api.js"></script>
+  <script src="product.js"></script>
+</body>
+</html>

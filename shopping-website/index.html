@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nova Market | Shop</title>
+  <meta name="description" content="Buy clothing and services from trusted local sellers on Nova Market." />
+  <meta property="og:title" content="Nova Market | Shop" />
+  <meta property="og:description" content="Shop clothing and services, pay securely, and track orders." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;800&family=Bricolage+Grotesque:wght@600;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+  <header class="topbar">
+    <div class="brand-wrap">
+      <a class="logo" href="#">NOVA MARKET</a>
+      <span class="status-pill">Live Local Commerce</span>
+    </div>
+    <nav class="main-nav">
+      <a href="index.html" data-nav="home">Home</a>
+      <a href="assets.html" id="assetsNavLink" data-nav="assets">Assets</a>
+      <a href="profile.html" data-nav="profile">Profile</a>
+      <a href="post.html" data-nav="post">Post</a>
+      <a href="ads.html" data-nav="ads">Create Ads</a>
+      <a href="admin.html" data-nav="admin">Admin</a>
+    </nav>
+    <div class="top-actions">
+      <div id="accountWidget" class="account-widget">
+        <a class="account-btn" href="auth.html">Account</a>
+      </div>
+      <button class="cart-btn" id="cartBtn">Cart <span id="cartCount">0</span></button>
+    </div>
+  </header>
+  <div class="floating-nav" aria-label="Quick navigation">
+    <a href="index.html" data-nav="home">Home</a>
+    <a href="assets.html" id="assetsQuickLink" data-nav="assets">Assets</a>
+    <a href="profile.html" data-nav="profile">Profile</a>
+    <a href="post.html" data-nav="post">Post</a>
+    <a href="ads.html" data-nav="ads">Create Ads</a>
+    <a href="admin.html" data-nav="admin">Admin</a>
+  </div>
+
+  <main>
+    <section class="hero">
+      <p class="eyebrow">SPRING DROP 2026</p>
+      <h1>Shop Clothing and Services in One Flow</h1>
+      <p>Streetwear, premium essentials, and local services available from one modern marketplace.</p>
+      <a href="#new" class="cta">Start Shopping</a>
+    </section>
+
+    <section class="filters" id="new">
+      <button class="filter active" data-filter="all" type="button">All</button>
+      <button class="filter" data-filter="clothing" type="button">Clothing</button>
+      <button class="filter" data-filter="service" type="button">Services</button>
+      <button class="filter" data-filter="new-arrival" type="button">New Arrival</button>
+      <button class="filter" data-filter="best-seller" type="button">Best Seller</button>
+      <label class="search-wrap" for="productSearch">
+        <span class="sr-only">Search products</span>
+        <input id="productSearch" type="search" placeholder="Search or paste Product ID" />
+      </label>
+    </section>
+
+    <section class="stories">
+      <h2>Stories</h2>
+      <div class="stories-row">
+        <button class="story-card active" type="button" aria-label="Story 1"></button>
+        <button class="story-card" type="button" aria-label="Story 2"></button>
+        <button class="story-card" type="button" aria-label="Story 3"></button>
+        <button class="story-card" type="button" aria-label="Story 4"></button>
+        <button class="story-card" type="button" aria-label="Story 5"></button>
+      </div>
+    </section>
+
+    <p class="empty-results" id="emptyResults">No matching items found.</p>
+    <p class="id-warning" id="idWarning" hidden>Invalid Product ID. Paste a copied ID like <code>ARC-129</code>.</p>
+
+    <section class="service-providers-section" id="serviceProvidersSection" hidden>
+      <h2 class="service-providers-title">Trusted service providers</h2>
+      <div id="serviceProvidersGrid" class="product-grid service-providers-grid"></div>
+    </section>
+
+    <section class="isolation-panel" id="isolationPanel" hidden>
+      <div class="isolation-info">
+        <p class="isolation-kicker">Product Details</p>
+        <h2 id="isolationTitle">Select a product by ID</h2>
+        <p id="isolationMeta">Paste a copied Product ID to isolate one listing.</p>
+        <p id="isolationDescription"></p>
+      </div>
+      <div class="isolation-seller">
+        <img id="isolationSellerImage" src="" alt="Seller profile" />
+        <div>
+          <p class="isolation-kicker">Seller</p>
+          <h3 id="isolationSellerName">-</h3>
+        </div>
+      </div>
+      <button class="clear-isolation" id="clearIsolationBtn" type="button">Clear</button>
+    </section>
+
+    <section class="product-grid" id="productGrid">
+      <article class="product" data-category="clothing" data-tags="new-arrival" data-product-id="ARC-129" data-sold="58" data-remaining="22" data-seller="Nova Apparel" data-seller-image="https://i.pravatar.cc/96?img=12" data-description="Heavy cotton jacket with clean fit and daily-wear comfort.">
+        <div class="thumb t1"></div>
+        <div class="info">
+          <div class="title-row">
+            <h3>Arc Jacket</h3>
+            <button class="copy-id" data-product-id="ARC-129" type="button" aria-label="Copy product ID ARC-129" title="Copy product ID">
+              <span class="copy-icon" aria-hidden="true">⧉</span>
+            </button>
+          </div>
+          <p class="type">Clothing</p>
+          <p class="stock">Sold 58 • Remaining 22</p>
+          <div class="seller-chip">
+            <img src="https://i.pravatar.cc/96?img=12" alt="Seller Nova Apparel" />
+            <span>Nova Apparel</span>
+          </div>
+          <div class="meta">
+            <button class="add" data-name="Arc Jacket" data-price="129" data-product-id="ARC-129">Add</button>
+          </div>
+        </div>
+      </article>
+      <article class="product" data-category="clothing" data-tags="best-seller" data-product-id="SKS-084" data-sold="81" data-remaining="12" data-seller="Shadow Studio" data-seller-image="https://i.pravatar.cc/96?img=28" data-description="Two-piece knit set for casual and premium street styling.">
+        <div class="thumb t2"></div>
+        <div class="info">
+          <div class="title-row">
+            <h3>Shadow Knit Set</h3>
+            <button class="copy-id" data-product-id="SKS-084" type="button" aria-label="Copy product ID SKS-084" title="Copy product ID">
+              <span class="copy-icon" aria-hidden="true">⧉</span>
+            </button>
+          </div>
+          <p class="type">Clothing</p>
+          <p class="stock">Sold 81 • Remaining 12</p>
+          <div class="seller-chip">
+            <img src="https://i.pravatar.cc/96?img=28" alt="Seller Shadow Studio" />
+            <span>Shadow Studio</span>
+          </div>
+          <div class="meta">
+            <button class="add" data-name="Shadow Knit Set" data-price="84" data-product-id="SKS-084">Add</button>
+          </div>
+        </div>
+      </article>
+      <article class="product" data-category="service" data-tags="new-arrival" data-product-id="LTS-049" data-sold="33" data-remaining="17" data-seller="City Stitch Team" data-seller-image="https://i.pravatar.cc/96?img=45" data-description="Book a local tailor session for fitting and custom adjustments.">
+        <div class="thumb t3"></div>
+        <div class="info">
+          <div class="title-row">
+            <h3>Local Tailor Session</h3>
+            <button class="copy-id" data-product-id="LTS-049" type="button" aria-label="Copy product ID LTS-049" title="Copy product ID">
+              <span class="copy-icon" aria-hidden="true">⧉</span>
+            </button>
+          </div>
+          <p class="type">Service</p>
+          <p class="stock">Sold 33 • Remaining 17</p>
+          <div class="seller-chip">
+            <img src="https://i.pravatar.cc/96?img=45" alt="Seller City Stitch Team" />
+            <span>City Stitch Team</span>
+          </div>
+          <div class="meta">
+            <button class="add" data-name="Local Tailor Session" data-price="49" data-product-id="LTS-049">Add</button>
+          </div>
+        </div>
+      </article>
+      <article class="product" data-category="service" data-tags="best-seller" data-product-id="CGP-039" data-sold="67" data-remaining="9" data-seller="Groom Hub" data-seller-image="https://i.pravatar.cc/96?img=51" data-description="Premium grooming package for men and women with home options.">
+        <div class="thumb t4"></div>
+        <div class="info">
+          <div class="title-row">
+            <h3>City Grooming Pass</h3>
+            <button class="copy-id" data-product-id="CGP-039" type="button" aria-label="Copy product ID CGP-039" title="Copy product ID">
+              <span class="copy-icon" aria-hidden="true">⧉</span>
+            </button>
+          </div>
+          <p class="type">Service</p>
+          <p class="stock">Sold 67 • Remaining 9</p>
+          <div class="seller-chip">
+            <img src="https://i.pravatar.cc/96?img=51" alt="Seller Groom Hub" />
+            <span>Groom Hub</span>
+          </div>
+          <div class="meta">
+            <button class="add" data-name="City Grooming Pass" data-price="39" data-product-id="CGP-039">Add</button>
+          </div>
+        </div>
+      </article>
+      <article class="product" data-category="clothing" data-tags="" data-product-id="NCP-072" data-sold="40" data-remaining="26" data-seller="Nova Utility Wear" data-seller-image="https://i.pravatar.cc/96?img=63" data-description="Relaxed cargo pants with utility pockets and reinforced seams.">
+        <div class="thumb t5"></div>
+        <div class="info">
+          <div class="title-row">
+            <h3>Nova Cargo Pants</h3>
+            <button class="copy-id" data-product-id="NCP-072" type="button" aria-label="Copy product ID NCP-072" title="Copy product ID">
+              <span class="copy-icon" aria-hidden="true">⧉</span>
+            </button>
+          </div>
+          <p class="type">Clothing</p>
+          <p class="stock">Sold 40 • Remaining 26</p>
+          <div class="seller-chip">
+            <img src="https://i.pravatar.cc/96?img=63" alt="Seller Nova Utility Wear" />
+            <span>Nova Utility Wear</span>
+          </div>
+          <div class="meta">
+            <button class="add" data-name="Nova Cargo Pants" data-price="72" data-product-id="NCP-072">Add</button>
+          </div>
+        </div>
+      </article>
+      <article class="product" data-category="service" data-tags="" data-product-id="HDP-019" data-sold="25" data-remaining="61" data-seller="Prime Dispatch" data-seller-image="https://i.pravatar.cc/96?img=16" data-description="Priority same-day dispatch service for local merchant orders.">
+        <div class="thumb t6"></div>
+        <div class="info">
+          <div class="title-row">
+            <h3>Home Delivery Prime</h3>
+            <button class="copy-id" data-product-id="HDP-019" type="button" aria-label="Copy product ID HDP-019" title="Copy product ID">
+              <span class="copy-icon" aria-hidden="true">⧉</span>
+            </button>
+          </div>
+          <p class="type">Service</p>
+          <p class="stock">Sold 25 • Remaining 61</p>
+          <div class="seller-chip">
+            <img src="https://i.pravatar.cc/96?img=16" alt="Seller Prime Dispatch" />
+            <span>Prime Dispatch</span>
+          </div>
+          <div class="meta">
+            <button class="add" data-name="Home Delivery Prime" data-price="19" data-product-id="HDP-019">Add</button>
+          </div>
+        </div>
+      </article>
+    </section>
+    <footer class="legal-footer">
+      <a href="privacy.html">Privacy</a>
+      <a href="terms.html">Terms</a>
+      <a href="refund-policy.html">Refund Policy</a>
+      <a href="cookies.html">Cookies</a>
+    </footer>
+  </main>
+
+  <aside class="cart-drawer" id="drawer">
+    <h2>Your Cart</h2>
+    <ul id="cartList"></ul>
+    <p class="cart-total">Total: <strong id="cartTotal">#0.00</strong></p>
+    <div class="wallet-checkout">
+      <p>Pay with</p>
+      <label><input type="radio" name="checkoutWallet" value="local" checked /> Naria Account</label>
+      <label><input type="radio" name="checkoutWallet" value="crypto" /> Crypto Wallet</label>
+      <p class="wallet-balance">Available: <strong id="checkoutWalletBalance">#0.00</strong></p>
+    </div>
+    <div class="cart-actions">
+      <button class="checkout" id="checkoutBtn" type="button">Checkout</button>
+      <button class="clear-cart" id="clearCartBtn" type="button">Clear</button>
+    </div>
+    <p class="cart-message" id="cartMessage" aria-live="polite"></p>
+  </aside>
+
+  <section class="embedded-page" id="embeddedAssets" aria-hidden="true">
+    <div class="embedded-shell">
+      <div class="embedded-head">
+        <p>Assets Vault</p>
+        <button type="button" id="closeEmbeddedAssets">Close</button>
+      </div>
+      <iframe src="assets.html" title="Assets Page" loading="lazy"></iframe>
+    </div>
+  </section>
+
+  <script src="../shared-api.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

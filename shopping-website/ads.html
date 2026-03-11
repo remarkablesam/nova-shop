@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Create Ad</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="post.css" />
+</head>
+<body>
+  <main class="post-page">
+    <section class="post-card">
+      <h1>Create Ad</h1>
+      <p class="subtitle">Newspaper-style ads in the shop grid. One message: the first part appears beside the image, the rest flows in two columns below.</p>
+
+      <div id="advertiserOnly" class="advertiser-only">
+        <form id="adForm" class="post-form ad-form-simple">
+          <label for="adText">Ad copy</label>
+          <textarea id="adText" rows="8" maxlength="1200" placeholder="Write your ad. The first line or two appear beside the image (lead); the rest appears below in two columns (newspaper style)." required></textarea>
+
+          <label for="adImage">Image (optional)</label>
+          <input id="adImage" type="file" accept="image/*" />
+          <div id="adImagePreviewWrap" class="image-preview-wrap hidden">
+            <img id="adImagePreview" alt="Preview" />
+          </div>
+
+          <label class="image-position-options">
+            <span class="label-inline">Layout:</span>
+            <label class="radio-option"><input type="radio" name="imagePosition" value="none" checked /> Text only</label>
+            <label class="radio-option"><input type="radio" name="imagePosition" value="left" /> With image (newspaper)</label>
+          </label>
+
+          <button type="submit" class="post-btn">Publish Ad</button>
+        </form>
+      </div>
+
+      <div id="nonAdvertiserMsg" class="non-advertiser-msg hidden">
+        <p>Only the advertiser account can create ads. Log in with <strong>info@novashop.com</strong> to create ads.</p>
+        <a href="auth.html" class="back-link">Account / Login</a>
+      </div>
+
+      <p id="adMessage" class="post-message" aria-live="polite">Ready</p>
+      <a href="index.html" class="back-link">Back to Shop</a>
+    </section>
+
+    <section class="my-posts" id="myAdsSection">
+      <h2>My Recent Ads</h2>
+      <div id="myAds"></div>
+    </section>
+  </main>
+
+  <script src="../shared-api.js"></script>
+  <script src="ads.js"></script>
+</body>
+</html>

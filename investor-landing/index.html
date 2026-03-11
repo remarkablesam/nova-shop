@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AstraVault | Local Crypto for Real Services</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;700;800&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="noise" aria-hidden="true"></div>
+  <header class="site-header">
+    <a class="brand" href="#">AstraVault</a>
+    <nav>
+      <a href="#vision">Vision</a>
+      <a href="#categories">Categories</a>
+      <a href="#vault">Vault</a>
+      <a href="#contact">Contact</a>
+    </nav>
+    <button class="nav-btn" id="joinEarlyBtn" type="button">Join Early</button>
+  </header>
+
+  <main>
+    <section class="hero" id="vision">
+      <p class="kicker reveal">LOCAL CRYPTO. REAL GOODS. GLOBAL INVESTORS.</p>
+      <h1 class="reveal">A Marketplace Where Assets Fuel Clothing and Services</h1>
+      <p class="hero-copy reveal">
+        Built for investors and communities. Deposit digital assets, access category-based utility,
+        and power local commerce with transparent on-chain trust.
+      </p>
+      <div class="hero-actions reveal">
+        <button class="primary" id="launchWaitlistBtn" type="button">Launch Waitlist</button>
+        <a class="ghost" id="whitepaperBtn" href="whitepaper.html">View Whitepaper</a>
+      </div>
+      <div class="orbits" aria-hidden="true">
+        <span class="orb orb-1"></span>
+        <span class="orb orb-2"></span>
+        <span class="orb orb-3"></span>
+      </div>
+    </section>
+
+    <section class="stats reveal">
+      <article>
+        <h2 data-count="12">0</h2>
+        <p>Local Partner Cities</p>
+      </article>
+      <article>
+        <h2 data-count="850">0</h2>
+        <p>Merchants in Pipeline</p>
+      </article>
+      <article>
+        <h2 data-count="4">0</h2>
+        <p>Utility Categories</p>
+      </article>
+      <article>
+        <h2 data-count="99">0</h2>
+        <p>Planned Settlement Speed (sec)</p>
+      </article>
+    </section>
+
+    <section id="categories">
+      <div class="section-head reveal">
+        <p class="kicker">CATEGORY SPLIT</p>
+        <h2>Local Crypto Utility Separated by Need</h2>
+      </div>
+      <div class="card-grid">
+        <article class="category-card reveal tilt">
+          <h3>Clothing</h3>
+          <p>Designer drops, local tailoring, and everyday essentials paid with verified utility tokens.</p>
+          <span>Apparel Index</span>
+        </article>
+        <article class="category-card reveal tilt">
+          <h3>Services</h3>
+          <p>Book maintenance, beauty, health, education, and logistics with wallet-native checkout.</p>
+          <span>Service Index</span>
+        </article>
+        <article class="category-card reveal tilt">
+          <h3>Investment Pools</h3>
+          <p>Allocate assets into community liquidity vaults with transparent category yields.</p>
+          <span>Vault Index</span>
+        </article>
+        <article class="category-card reveal tilt">
+          <h3>Merchant Tools</h3>
+          <p>Point-of-sale settlement, loyalty rails, and regional analytics for real-world adoption.</p>
+          <span>Business Index</span>
+        </article>
+      </div>
+    </section>
+
+    <section class="vault reveal" id="vault">
+      <div>
+        <p class="kicker">ASSET VAULT</p>
+        <h2>Deposit Once. Deploy Across Categories.</h2>
+        <p>
+          Investors can route capital into category modules while local users spend seamlessly through
+          stable pricing layers. Built for trust, speed, and traceability.
+        </p>
+      </div>
+      <form class="vault-form" id="vaultForm">
+        <label>
+          Asset Type
+          <select id="assetType">
+            <option>USDC</option>
+            <option>BTC</option>
+            <option>ETH</option>
+            <option>Local Stable Token</option>
+          </select>
+        </label>
+        <label>
+          Target Category
+          <select id="targetCategory">
+            <option>Clothing</option>
+            <option>Services</option>
+            <option>Balanced Basket</option>
+          </select>
+        </label>
+        <label>
+          Amount
+          <input type="number" id="vaultAmount" min="1" step="1" placeholder="10000" required />
+        </label>
+        <button type="submit" class="primary">Preview Allocation</button>
+        <p id="allocationPreview" class="form-message" aria-live="polite">Enter an amount and preview allocation.</p>
+      </form>
+    </section>
+
+    <section class="waitlist reveal" id="waitlist">
+      <div class="section-head">
+        <p class="kicker">EARLY ACCESS</p>
+        <h2>Join Investor Waitlist</h2>
+      </div>
+      <form id="waitlistForm" class="waitlist-form">
+        <label>
+          Full Name
+          <input id="waitlistName" type="text" required />
+        </label>
+        <label>
+          Email
+          <input id="waitlistEmail" type="email" required />
+        </label>
+        <label>
+          Profile
+          <select id="waitlistRole">
+            <option>Investor</option>
+            <option>Merchant</option>
+            <option>Community Partner</option>
+          </select>
+        </label>
+        <button class="primary" type="submit">Join Waitlist</button>
+        <p id="waitlistMessage" class="form-message" aria-live="polite">No submission yet.</p>
+      </form>
+    </section>
+  </main>
+
+  <footer id="contact">
+    <p>Built for the next economic layer of local commerce.</p>
+    <a href="#">hello@astravault.io</a>
+  </footer>
+
+  <script src="../shared-api.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

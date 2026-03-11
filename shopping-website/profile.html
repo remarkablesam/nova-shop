@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nova Market | Your profile</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;800&family=Bricolage+Grotesque:wght@600;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="profile.css" />
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+  <main class="profile-layout">
+    <section class="profile-hero">
+      <p class="kicker">YOUR INFO</p>
+      <h1>Your profile</h1>
+      <p>View and update your name and profile photo. Account login is on a separate page.</p>
+      <a href="index.html" class="back-link">Back to Shop</a>
+      <a href="auth.html" class="auth-link" id="authLink">Login / Sign up</a>
+    </section>
+
+    <section class="profile-card" id="profileCard">
+      <p class="login-prompt" id="loginPrompt" hidden>
+        Please <a href="auth.html">log in</a> to view and edit your details.
+      </p>
+
+      <section class="profile-details-card" id="profileDetailsCard" hidden>
+        <h3 class="profile-details-title">Your details</h3>
+        <div class="profile-details-view" id="profileDetailsView">
+          <div class="profile-avatar-wrap" id="profileAvatarWrap">
+            <img id="profileAvatarImg" class="profile-avatar-img" src="" alt="" hidden />
+            <span id="profileInitials" class="profile-avatar-initials"></span>
+          </div>
+          <p class="profile-detail"><strong>Name</strong> <span id="profileName"></span></p>
+          <p class="profile-detail"><strong>Email</strong> <span id="profileEmail"></span></p>
+        </div>
+        <button type="button" class="update-info-btn" id="updateInfoBtn">Update info</button>
+      </section>
+
+      <section class="incoming-transactions-card" id="incomingTransactionsCard" hidden>
+        <div class="incoming-head">
+          <h3 class="profile-details-title">Incoming transactions</h3>
+          <span class="incoming-badge" id="incomingBadge">0</span>
+        </div>
+        <p class="incoming-empty" id="incomingEmpty">No incoming paid transactions yet.</p>
+        <div class="incoming-list" id="incomingList"></div>
+      </section>
+
+      <section class="profile-update-card hidden" id="profileUpdateCard">
+        <h3 class="profile-details-title">Update your details</h3>
+        <form id="profileUpdateForm" class="profile-update-form">
+          <label>Full name</label>
+          <input type="text" id="profileNameInput" placeholder="Your name" required />
+          <label>Profile photo (optional)</label>
+          <input type="file" id="profilePhotoInput" accept="image/*" />
+          <div id="profilePhotoPreviewWrap" class="profile-photo-preview hidden">
+            <img id="profilePhotoPreview" alt="Preview" />
+          </div>
+          <button type="submit" class="submit-btn">Save</button>
+        </form>
+        <button type="button" class="cancel-update-btn" id="cancelUpdateBtn">Cancel</button>
+      </section>
+
+      <section class="session-card" id="sessionCard" aria-live="polite" hidden>
+        <p class="session-label">Logged in as</p>
+        <p class="session-user" id="sessionUser"></p>
+        <a href="auth.html" class="logout-link" id="logoutLink">Log out</a>
+      </section>
+
+      <section class="profile-details-card" id="addressBookCard" hidden>
+        <h3 class="profile-details-title">Address Book</h3>
+        <form id="addressForm" class="profile-update-form">
+          <label>Label</label>
+          <input type="text" id="addressLabel" placeholder="Home / Office" />
+          <label>Address line</label>
+          <input type="text" id="addressLine" placeholder="Street and building" required />
+          <label>City</label>
+          <input type="text" id="addressCity" placeholder="City" required />
+          <label>Country</label>
+          <input type="text" id="addressCountry" placeholder="Country" />
+          <button type="submit" class="submit-btn">Save Address</button>
+        </form>
+        <ul id="addressList" class="incoming-products"></ul>
+      </section>
+
+      <section class="profile-details-card" id="notificationCard" hidden>
+        <h3 class="profile-details-title">Notifications</h3>
+        <ul id="notificationList" class="incoming-products"></ul>
+      </section>
+    </section>
+
+    <p class="message" id="savedMessage">Saved.</p>
+  </main>
+
+  <script src="../shared-api.js"></script>
+  <script src="profile.js"></script>
+</body>
+</html>

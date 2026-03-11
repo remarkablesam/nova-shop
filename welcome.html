@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nova Market | Welcome</title>
+  <meta name="description" content="Choose your Nova Market shopping mode." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="welcome.css" />
+  <style>
+    @keyframes skeletonShimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    .skeleton-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: rgba(4, 10, 22, 0.92);
+      display: grid;
+      place-items: center;
+    }
+    .skeleton-panel {
+      width: min(720px, 90vw);
+      display: grid;
+      gap: 16px;
+    }
+    .skeleton-bar,
+    .skeleton-card {
+      border-radius: 14px;
+      background: linear-gradient(90deg, rgba(255,255,255,0.08), rgba(255,255,255,0.22), rgba(255,255,255,0.08));
+      background-size: 200% 100%;
+      animation: skeletonShimmer 1.2s ease-in-out infinite;
+    }
+    .skeleton-bar { height: 18px; }
+    .skeleton-bar.short { width: 40%; }
+    .skeleton-bar.medium { width: 65%; }
+    .skeleton-card { height: 140px; }
+  </style>
+  <script src="welcome.js" defer></script>
+</head>
+<body>
+  <div class="skeleton-overlay" id="skeletonOverlay" aria-hidden="true">
+    <div class="skeleton-panel">
+      <div class="skeleton-bar short"></div>
+      <div class="skeleton-bar medium"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+    </div>
+  </div>
+  <main class="welcome-shell" data-stage="writing" data-animate="false">
+    <div class="bg-orb orb-a" aria-hidden="true"></div>
+    <div class="bg-orb orb-b" aria-hidden="true"></div>
+    <section class="welcome-card" aria-labelledby="welcome-title" aria-live="polite">
+      <div class="brand-intro" id="brandIntro" aria-hidden="true">
+        <p class="intro-label">NOVA MARKET</p>
+        <h2 class="spark-write" aria-label="Nova Market">
+          <span>NOVA MARKET</span>
+        </h2>
+      </div>
+
+      <div class="welcome-content" id="welcomeContent">
+        <p class="eyebrow reveal">NOVA MARKET</p>
+        <h1 id="welcome-title" class="reveal">Choose how you want to shop</h1>
+        <p class="subtitle reveal">Select an option to continue.</p>
+
+        <div class="actions" role="group" aria-label="Shopping mode options">
+          <a class="choice retail from-left" href="/shopping-website/">
+            <span class="label">Retail</span>
+            <span class="hint">Shop goods and services now</span>
+          </a>
+          <a class="choice wholesale from-right" href="/shopping-website/?mode=wholesale">
+            <span class="label">Wholesale</span>
+            <span class="hint">Bulk buying area</span>
+          </a>
+        </div>
+      </div>
+      <p class="motion-status" id="motionStatus" aria-hidden="true">Loading experience...</p>
+    </section>
+  </main>
+  <script>
+    window.addEventListener("load", () => {
+      const overlay = document.getElementById("skeletonOverlay");
+      if (overlay) overlay.remove();
+    });
+    window.setTimeout(() => {
+      const overlay = document.getElementById("skeletonOverlay");
+      if (overlay) overlay.remove();
+    }, 4000);
+  </script>
+</body>
+</html>

@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Post Product</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="post.css" />
+</head>
+<body>
+  <main class="post-page">
+    <section class="post-card">
+      <h1>Create Listing</h1>
+      <p class="subtitle">Add your product details below.</p>
+
+      <form id="postForm" class="post-form">
+        <label for="postTitle">Product Name</label>
+        <input id="postTitle" type="text" maxlength="120" placeholder="Arc Leather Jacket" required />
+
+        <label for="postCategory">Category</label>
+        <select id="postCategory" required>
+          <option value="clothing">Clothing</option>
+          <option value="service">Service</option>
+          <option value="other">Other</option>
+        </select>
+
+        <label for="postPrice">Price (Naria)</label>
+        <input id="postPrice" type="number" min="0" step="0.01" placeholder="25000" required />
+
+        <label for="postContact">Contact</label>
+        <input id="postContact" type="text" maxlength="120" placeholder="Email or phone" />
+
+        <label for="postDescription">Description</label>
+        <textarea id="postDescription" rows="5" maxlength="800" placeholder="Describe your product, condition, and delivery details." required></textarea>
+
+        <label for="postImage">Product Photo</label>
+        <input id="postImage" type="file" accept="image/*" />
+
+        <div id="imagePreviewWrap" class="image-preview-wrap hidden">
+          <img id="imagePreview" alt="Selected product preview" />
+        </div>
+
+        <button type="submit" class="post-btn">Publish Product</button>
+      </form>
+
+      <p id="postMessage" class="post-message" aria-live="polite">Ready</p>
+      <a href="index.html" class="back-link">Back to Shop</a>
+    </section>
+
+    <section class="my-posts">
+      <h2>My Recent Posts</h2>
+      <div id="myPosts"></div>
+    </section>
+  </main>
+
+  <script src="../shared-api.js"></script>
+  <script src="post.js"></script>
+</body>
+</html>

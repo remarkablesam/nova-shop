@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nova Market | Seller Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;800&family=Bricolage+Grotesque:wght@600;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="seller.css" />
+</head>
+<body>
+  <main class="seller-layout">
+    <a href="index.html" class="back-link">Back to Shop</a>
+    <section class="seller-card">
+      <h1>Seller Dashboard</h1>
+      <p id="summary">Loading...</p>
+      <h3>Orders</h3>
+      <ul id="orderList"></ul>
+      <h3>Payouts</h3>
+      <form id="payoutForm">
+        <input id="payoutAmount" type="number" min="1" step="0.01" placeholder="Amount" required />
+        <button type="submit">Request Payout</button>
+      </form>
+      <ul id="payoutList"></ul>
+      <p id="message" aria-live="polite"></p>
+    </section>
+  </main>
+  <script src="../shared-api.js"></script>
+  <script src="seller.js"></script>
+</body>
+</html>
