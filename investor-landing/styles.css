@@ -276,6 +276,21 @@ h1 {
   margin: 10px 0 72px;
 }
 
+.disclaimer {
+  margin: 0 0 36px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: rgba(6, 12, 34, 0.45);
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.disclaimer strong {
+  color: var(--ink);
+}
+
 .waitlist-form {
   border: 1px solid #2c3d79;
   border-radius: 20px;
