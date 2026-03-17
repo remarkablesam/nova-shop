@@ -498,6 +498,11 @@
       "userId": null,
       "createdAt": "2026-03-10T12:01:09.867Z",
       "lastSeenAt": "2026-03-10T12:01:09.867Z"
+    },
+    "b1afee0b-c63c-498f-9ecc-cf2ffd2021a8": {
+      "userId": null,
+      "createdAt": "2026-03-17T03:50:13.809Z",
+      "lastSeenAt": "2026-03-17T03:50:13.809Z"
     }
   },
   "carts": {
@@ -1381,5 +1386,9 @@
       }
     ]
   },
-  "sellerPayouts": []
+  "sellerPayouts": [],
+  "paystack": {
+    "pending": {},
+    "processed": {}
+  }
 }
