@@ -1,12 +1,12 @@
 const crypto = require("crypto");
-const fs = require("fs");
+require("dotenv").config();
 const path = require("path");
 const express = require("express");
 const cookieParser = require("cookie-parser");
+const { readDb, writeDb } = require("./lib/db");
 
 const app = express();
 const port = Number(process.env.PORT || 4173);
-const dbPath = path.join(__dirname, "data", "db.json");
 const sessionCookieName = "nova_sid";
 const defaultCatalogStock = {
   "ARC-129": 80,
@@ -95,70 +95,58 @@ const defaultDb = {
   userFlags: {},
   returns: [],
   orderTracking: {},
-  sellerPayouts: []
+  sellerPayouts: [],
+  paystack: { pending: {}, processed: {} }
 };
 
-function ensureDbFile() {
-  const folder = path.dirname(dbPath);
-  if (!fs.existsSync(folder)) fs.mkdirSync(folder, { recursive: true });
-  if (!fs.existsSync(dbPath)) {
-    fs.writeFileSync(dbPath, JSON.stringify(defaultDb, null, 2));
-  }
-}
-
-function readDb() {
-  ensureDbFile();
-  try {
-    const raw = fs.readFileSync(dbPath, "utf8");
-    const parsed = JSON.parse(raw);
-    const postItems = Array.isArray(parsed.productPosts) ? parsed.productPosts : [];
-    const normalizedPosts = postItems.map((post) => {
-      const safeId = String(post.id || generateId());
-      const stockTotal = Math.max(1, Number(post.stockTotal) || 60);
-      const soldCount = Math.max(0, Math.min(stockTotal, Number(post.soldCount) || 0));
-      return {
-        ...post,
-        id: safeId,
-        productId: String(post.productId || getPostProductId(safeId)),
-        stockTotal,
-        soldCount
-      };
-    });
-
+function normalizeStore(parsed) {
+  const postItems = Array.isArray(parsed.productPosts) ? parsed.productPosts : [];
+  const normalizedPosts = postItems.map((post) => {
+    const safeId = String(post.id || generateId());
+    const stockTotal = Math.max(1, Number(post.stockTotal) || 60);
+    const soldCount = Math.max(0, Math.min(stockTotal, Number(post.soldCount) || 0));
     return {
-      ...defaultDb,
-      ...parsed,
-      sessions: parsed.sessions || {},
-      carts: parsed.carts || {},
-      wallets: parsed.wallets || {},
-      productPosts: normalizedPosts,
-      adPosts: Array.isArray(parsed.adPosts) ? parsed.adPosts : [],
-      serviceProviders: Array.isArray(parsed.serviceProviders) ? parsed.serviceProviders : [],
-      serviceProviderRatings: parsed.serviceProviderRatings && typeof parsed.serviceProviderRatings === "object" ? parsed.serviceProviderRatings : {},
-      catalogSales: parsed.catalogSales || {},
-      wishlists: parsed.wishlists || {},
-      addresses: parsed.addresses || {},
-      notifications: parsed.notifications || {},
-      passwordResetTokens: parsed.passwordResetTokens || {},
-      emailVerificationTokens: parsed.emailVerificationTokens || {},
-      productModeration: parsed.productModeration || {},
-      userFlags: parsed.userFlags || {},
-      returns: Array.isArray(parsed.returns) ? parsed.returns : [],
-      orderTracking: parsed.orderTracking || {},
-      sellerPayouts: Array.isArray(parsed.sellerPayouts) ? parsed.sellerPayouts : [],
-      commissions: {
-        ...defaultDb.commissions,
-        ...(parsed.commissions || {})
-      }
+      ...post,
+      id: safeId,
+      productId: String(post.productId || getPostProductId(safeId)),
+      stockTotal,
+      soldCount
     };
-  } catch (error) {
-    return { ...defaultDb };
-  }
+  });
+  return {
+    ...parsed,
+    sessions: parsed.sessions || {},
+    carts: parsed.carts || {},
+    wallets: parsed.wallets || {},
+    productPosts: normalizedPosts,
+    adPosts: Array.isArray(parsed.adPosts) ? parsed.adPosts : [],
+    serviceProviders: Array.isArray(parsed.serviceProviders) ? parsed.serviceProviders : [],
+    serviceProviderRatings: parsed.serviceProviderRatings && typeof parsed.serviceProviderRatings === "object" ? parsed.serviceProviderRatings : {},
+    catalogSales: parsed.catalogSales || {},
+    wishlists: parsed.wishlists || {},
+    addresses: parsed.addresses || {},
+    notifications: parsed.notifications || {},
+    passwordResetTokens: parsed.passwordResetTokens || {},
+    emailVerificationTokens: parsed.emailVerificationTokens || {},
+    productModeration: parsed.productModeration || {},
+    userFlags: parsed.userFlags || {},
+    returns: Array.isArray(parsed.returns) ? parsed.returns : [],
+    orderTracking: parsed.orderTracking || {},
+    sellerPayouts: Array.isArray(parsed.sellerPayouts) ? parsed.sellerPayouts : [],
+    commissions: { ...defaultDb.commissions, ...(parsed.commissions || {}) },
+    paystack: {
+      pending: parsed.paystack && parsed.paystack.pending ? parsed.paystack.pending : {},
+      processed: parsed.paystack && parsed.paystack.processed ? parsed.paystack.processed : {}
+    }
+  };
 }
 
-function writeDb(db) {
-  ensureDbFile();
-  fs.writeFileSync(dbPath, JSON.stringify(db, null, 2));
+async function loadDb() {
+  return readDb(defaultDb, normalizeStore);
+}
+
+async function saveDb(db) {
+  await writeDb(db);
 }
 
 function generateId() {
@@ -338,9 +326,15 @@ function getOrCreateSession(req, res, db) {
   let sid = req.cookies[sessionCookieName];
   if (!sid) {
     sid = generateId();
+    const forwardedProto = String(req.headers["x-forwarded-proto"] || "").split(",")[0].trim();
+    const isSecure = Boolean(req.secure || forwardedProto === "https");
     res.cookie(sessionCookieName, sid, {
       httpOnly: true,
-      sameSite: "lax",
+      // When returning from Paystack inside an embedded iframe, browsers can treat the
+      // navigation as cross-site. SameSite=None+Secure is the most compatible option
+      // for HTTPS deployments, while local HTTP dev keeps Lax.
+      sameSite: isSecure ? "none" : "lax",
+      secure: isSecure,
       maxAge: 1000 * 60 * 60 * 24 * 30
     });
   }
@@ -561,7 +555,71 @@ function ensureAdvertiserUser(db) {
   return true;
 }
 
-app.use(express.json({ limit: "12mb" }));
+app.post(
+  "/api/paystack/webhook",
+  express.raw({ type: "application/json" }),
+  async (req, res) => {
+    const secretKey = process.env.PAYSTACK_SECRET_KEY;
+    const signature = req.headers["x-paystack-signature"];
+    if (!secretKey || !signature) {
+      res.status(400).send("Missing Paystack secret or signature");
+      return;
+    }
+
+    const payloadBuffer = Buffer.isBuffer(req.body) ? req.body : Buffer.from(String(req.body || ""), "utf8");
+    const expected = crypto.createHmac("sha512", secretKey).update(payloadBuffer).digest("hex");
+    if (expected !== signature) {
+      res.status(401).send("Invalid signature");
+      return;
+    }
+
+    let event = null;
+    try {
+      event = JSON.parse(payloadBuffer.toString("utf8"));
+    } catch (err) {
+      res.status(400).send("Invalid JSON payload");
+      return;
+    }
+
+    try {
+      const eventType = String(event?.event || "");
+      const data = event?.data || {};
+      const reference = String(data.reference || "");
+      if (
+        reference &&
+        (eventType === "charge.success" || eventType.startsWith("transaction.success"))
+      ) {
+        const db = await loadDb();
+        db.paystack = db.paystack || { pending: {}, processed: {} };
+        if (!db.paystack.processed[reference]) {
+          const pending = db.paystack.pending[reference];
+          if (pending && Number(data.amount) === pending.amountKobo && data.status === "success") {
+            const wallet = { ...getDefaultWallet(), ...(db.wallets[pending.actorKey] || {}) };
+            wallet[pending.walletType] = roundMoney((wallet[pending.walletType] || 0) + pending.amount);
+            db.wallets[pending.actorKey] = wallet;
+            db.paystack.processed[reference] = {
+              ...pending,
+              verifiedAt: new Date().toISOString(),
+              channel: data.channel || null,
+              eventType
+            };
+            delete db.paystack.pending[reference];
+            await saveDb(db);
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Paystack webhook error:", err);
+    }
+
+    res.status(200).send("OK");
+  }
+);
+
+// Only parse JSON for API routes. Third-party redirects/callbacks can POST non-JSON
+// payloads to non-API pages (e.g. Paystack callback_url), which would otherwise
+// throw and surface as a 500 on a static HTML page.
+app.use("/api", express.json({ limit: "12mb" }));
 app.use(cookieParser());
 app.use(basicRateLimit(300, 60_000));
 app.use((req, res, next) => {
@@ -580,20 +638,35 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use((req, res, next) => {
-  const db = readDb();
-  const sid = getOrCreateSession(req, res, db);
-  writeDb(db);
-  req.sessionId = sid;
-  next();
+app.use(async (req, res, next) => {
+  // Static pages (including the Paystack callback landing page) should still render
+  // even if the DB is unavailable. We only require sessions/DB for API routes.
+  if (!req.path.startsWith("/api/")) {
+    next();
+    return;
+  }
+  try {
+    const db = await loadDb();
+    const sid = getOrCreateSession(req, res, db);
+    await saveDb(db);
+    req.sessionId = sid;
+    next();
+  } catch (err) {
+    next(err);
+  }
 });
 
-app.get("/api/health", (req, res) => {
+app.get("/api/health", async (req, res) => {
   res.json({ ok: true, at: new Date().toISOString() });
 });
 
-app.get("/api/auth/me", (req, res) => {
-  const db = readDb();
+app.get("/api/paystack/status", (req, res) => {
+  const secretKey = process.env.PAYSTACK_SECRET_KEY;
+  res.json({ configured: Boolean(secretKey) });
+});
+
+app.get("/api/auth/me", async (req, res) => {
+  const db = await loadDb();
   const user = getUserBySession(db, req.sessionId);
   if (!user) {
     res.json({ user: null });
@@ -616,8 +689,8 @@ app.get("/api/auth/me", (req, res) => {
   });
 });
 
-app.get("/api/profile/incoming-transactions", (req, res) => {
-  const db = readDb();
+app.get("/api/profile/incoming-transactions", async (req, res) => {
+  const db = await loadDb();
   const session = db.sessions[req.sessionId];
   const user = session && session.userId ? db.users.find((item) => item.id === session.userId) : null;
 
@@ -631,8 +704,8 @@ app.get("/api/profile/incoming-transactions", (req, res) => {
   res.json({ items, count: items.length });
 });
 
-app.put("/api/auth/profile", (req, res) => {
-  const db = readDb();
+app.put("/api/auth/profile", async (req, res) => {
+  const db = await loadDb();
   const session = db.sessions[req.sessionId];
   const user = session && session.userId ? db.users.find((item) => item.id === session.userId) : null;
   if (!user) {
@@ -643,7 +716,7 @@ app.put("/api/auth/profile", (req, res) => {
   const profileImage = sanitizeImageData(req.body.profileImage);
   if (name.length >= 2) user.name = name;
   if (profileImage !== undefined) user.profileImage = profileImage || "";
-  writeDb(db);
+  await saveDb(db);
   res.json({
     user: {
       id: user.id,
@@ -655,8 +728,8 @@ app.put("/api/auth/profile", (req, res) => {
   });
 });
 
-app.post("/api/auth/signup", (req, res) => {
-  const db = readDb();
+app.post("/api/auth/signup", async (req, res) => {
+  const db = await loadDb();
   const name = sanitizeName(req.body.name);
   const email = sanitizeEmail(req.body.email);
   const password = String(req.body.password || "");
@@ -699,12 +772,12 @@ app.post("/api/auth/signup", (req, res) => {
   };
   db.sessions[req.sessionId].userId = user.id;
   migrateGuestStateToUser(db, req.sessionId, user.id);
-  writeDb(db);
+  await saveDb(db);
   res.status(201).json({ user: { id: user.id, name: user.name, email: user.email, role: user.role } });
 });
 
-app.post("/api/auth/login", (req, res) => {
-  const db = readDb();
+app.post("/api/auth/login", async (req, res) => {
+  const db = await loadDb();
   const email = sanitizeEmail(req.body.email);
   const password = String(req.body.password || "");
 
@@ -722,38 +795,38 @@ app.post("/api/auth/login", (req, res) => {
 
   db.sessions[req.sessionId].userId = user.id;
   migrateGuestStateToUser(db, req.sessionId, user.id);
-  writeDb(db);
+  await saveDb(db);
   res.json({ user: { id: user.id, name: user.name, email: user.email, role: user.role || "user" } });
 });
 
-app.post("/api/auth/logout", (req, res) => {
-  const db = readDb();
+app.post("/api/auth/logout", async (req, res) => {
+  const db = await loadDb();
   if (db.sessions[req.sessionId]) {
     db.sessions[req.sessionId].userId = null;
     db.sessions[req.sessionId].lastSeenAt = new Date().toISOString();
-    writeDb(db);
+    await saveDb(db);
   }
   res.json({ ok: true });
 });
 
-app.get("/api/cart", (req, res) => {
-  const db = readDb();
+app.get("/api/cart", async (req, res) => {
+  const db = await loadDb();
   const actorKey = getActorKey(db, req.sessionId);
   const items = sanitizeCartItems(db.carts[actorKey] || []);
   res.json({ items });
 });
 
-app.put("/api/cart", (req, res) => {
-  const db = readDb();
+app.put("/api/cart", async (req, res) => {
+  const db = await loadDb();
   const actorKey = getActorKey(db, req.sessionId);
   const items = sanitizeCartItems(req.body.items);
   db.carts[actorKey] = items;
-  writeDb(db);
+  await saveDb(db);
   res.json({ items });
 });
 
-app.get("/api/wallets", (req, res) => {
-  const db = readDb();
+app.get("/api/wallets", async (req, res) => {
+  const db = await loadDb();
   const actorKey = getActorKey(db, req.sessionId);
   const wallet = {
     ...getDefaultWallet(),
@@ -762,8 +835,8 @@ app.get("/api/wallets", (req, res) => {
   res.json(wallet);
 });
 
-app.post("/api/wallets/deposit", (req, res) => {
-  const db = readDb();
+app.post("/api/wallets/deposit", async (req, res) => {
+  const db = await loadDb();
   const actorKey = getActorKey(db, req.sessionId);
   const walletType = req.body.walletType;
   const amount = Number(req.body.amount);
@@ -780,12 +853,162 @@ app.post("/api/wallets/deposit", (req, res) => {
   const wallet = { ...getDefaultWallet(), ...(db.wallets[actorKey] || {}) };
   wallet[walletType] += amount;
   db.wallets[actorKey] = wallet;
-  writeDb(db);
+  await saveDb(db);
   res.json(wallet);
 });
 
-app.post("/api/wallets/pay", (req, res) => {
-  const db = readDb();
+app.post("/api/wallets/deposit/paystack", async (req, res) => {
+  const secretKey = process.env.PAYSTACK_SECRET_KEY;
+  if (!secretKey) {
+    res.status(503).json({ error: "Paystack is not configured." });
+    return;
+  }
+
+  const db = await loadDb();
+  const user = getUserBySession(db, req.sessionId);
+  if (!user || !user.email) {
+    res.status(401).json({ error: "Please log in with a valid email to use Paystack." });
+    return;
+  }
+
+  const actorKey = getActorKey(db, req.sessionId);
+  const walletType = req.body.walletType || "local";
+  const amount = roundMoney(Number(req.body.amount) || 0);
+
+  if (!["local", "crypto"].includes(walletType)) {
+    res.status(400).json({ error: "Invalid wallet type." });
+    return;
+  }
+  if (amount < 1) {
+    res.status(400).json({ error: "Minimum deposit is 1.00." });
+    return;
+  }
+  if (amount > 99999.99) {
+    res.status(400).json({ error: "Maximum deposit is 99,999.99." });
+    return;
+  }
+
+  const amountKobo = Math.round(amount * 100);
+  const reference = `nova_${generateId()}`;
+  const baseUrl = (process.env.BASE_URL || `${req.protocol}://${req.get("host") || "localhost:4173"}`).replace(/\/$/, "");
+  const callbackUrl = `${baseUrl}/shopping-website/assets.html?deposit=paystack`;
+
+  db.paystack = db.paystack || { pending: {}, processed: {} };
+  db.paystack.pending[reference] = {
+    actorKey,
+    walletType,
+    amount,
+    amountKobo,
+    createdAt: new Date().toISOString()
+  };
+  await saveDb(db);
+
+  try {
+    const response = await fetch("https://api.paystack.co/transaction/initialize", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${secretKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        email: user.email,
+        amount: amountKobo,
+        currency: "NGN",
+        reference,
+        callback_url: callbackUrl
+      })
+    });
+
+    const payload = await response.json().catch(() => null);
+    if (!response.ok || !payload || !payload.status) {
+      console.error("Paystack init error:", payload);
+      res.status(502).json({ error: payload?.message || "Failed to initialize Paystack payment." });
+      return;
+    }
+    res.json({ url: payload.data.authorization_url, reference });
+  } catch (err) {
+    console.error("Paystack init error:", err);
+    res.status(500).json({ error: err.message || "Failed to initialize Paystack payment." });
+  }
+});
+
+app.get("/api/paystack/verify", async (req, res) => {
+  const secretKey = process.env.PAYSTACK_SECRET_KEY;
+  if (!secretKey) {
+    res.status(503).json({ error: "Paystack is not configured." });
+    return;
+  }
+  const reference = String(req.query.reference || "").trim();
+  if (!reference) {
+    res.status(400).json({ error: "Missing reference." });
+    return;
+  }
+
+  const db = await loadDb();
+  db.paystack = db.paystack || { pending: {}, processed: {} };
+  const processed = db.paystack.processed[reference] || null;
+  const pending = db.paystack.pending[reference] || null;
+  const record = pending || processed;
+  if (!record) {
+    res.status(404).json({ error: "Deposit not found." });
+    return;
+  }
+
+  const actorKey = getActorKey(db, req.sessionId);
+  if (actorKey !== record.actorKey) {
+    res.status(403).json({ error: "Session mismatch." });
+    return;
+  }
+
+  // If the Paystack webhook already credited the wallet, we may no longer have a
+  // pending record. In that case just return the wallet state.
+  if (processed) {
+    const wallet = { ...getDefaultWallet(), ...(db.wallets[actorKey] || {}) };
+    res.json({ ok: true, wallet });
+    return;
+  }
+
+  try {
+    const response = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, {
+      headers: { Authorization: `Bearer ${secretKey}` }
+    });
+    const payload = await response.json().catch(() => null);
+    if (!response.ok || !payload || !payload.status) {
+      console.error("Paystack verify error:", payload);
+      res.status(502).json({ error: payload?.message || "Failed to verify Paystack payment." });
+      return;
+    }
+
+    const data = payload.data || {};
+    if (data.status !== "success") {
+      res.status(400).json({ error: "Payment not completed." });
+      return;
+    }
+    if (Number(data.amount) !== pending.amountKobo) {
+      res.status(400).json({ error: "Payment amount mismatch." });
+      return;
+    }
+
+    const wallet = { ...getDefaultWallet(), ...(db.wallets[actorKey] || {}) };
+    wallet[pending.walletType] = roundMoney((wallet[pending.walletType] || 0) + pending.amount);
+    db.wallets[actorKey] = wallet;
+    db.paystack.processed[reference] = {
+      ...pending,
+      verifiedAt: new Date().toISOString(),
+      channel: data.channel || null
+    };
+    delete db.paystack.pending[reference];
+    await saveDb(db);
+
+    res.json({ ok: true, wallet });
+  } catch (err) {
+    console.error("Paystack verify error:", err);
+    res.status(500).json({ error: err.message || "Failed to verify Paystack payment." });
+  }
+});
+
+app.post("/api/wallets/pay", async (req, res) => {
+  const db = await loadDb();
   const actorKey = getActorKey(db, req.sessionId);
   const walletType = req.body.walletType;
   const amount = Number(req.body.amount);
@@ -807,20 +1030,20 @@ app.post("/api/wallets/pay", (req, res) => {
 
   wallet[walletType] -= amount;
   db.wallets[actorKey] = wallet;
-  writeDb(db);
+  await saveDb(db);
   res.json(wallet);
 });
 
-app.post("/api/wallets/reset", (req, res) => {
-  const db = readDb();
+app.post("/api/wallets/reset", async (req, res) => {
+  const db = await loadDb();
   const actorKey = getActorKey(db, req.sessionId);
   db.wallets[actorKey] = getDefaultWallet();
-  writeDb(db);
+  await saveDb(db);
   res.json(db.wallets[actorKey]);
 });
 
-app.post("/api/checkout", (req, res) => {
-  const db = readDb();
+app.post("/api/checkout", async (req, res) => {
+  const db = await loadDb();
   const actorKey = getActorKey(db, req.sessionId);
   const walletType = req.body.walletType;
   if (!["local", "crypto"].includes(walletType)) {
@@ -932,12 +1155,12 @@ app.post("/api/checkout", (req, res) => {
   });
   db.carts[actorKey] = [];
 
-  writeDb(db);
+  await saveDb(db);
   res.json({ order, wallets: wallet, cart: [] });
 });
 
-app.get("/api/orders", (req, res) => {
-  const db = readDb();
+app.get("/api/orders", async (req, res) => {
+  const db = await loadDb();
   const actorKey = getActorKey(db, req.sessionId);
   const limit = Math.max(1, Math.min(500, Number(req.query.limit) || 25));
   const items = db.orders
@@ -948,8 +1171,8 @@ app.get("/api/orders", (req, res) => {
   res.json({ items });
 });
 
-app.get("/api/orders/:id", (req, res) => {
-  const db = readDb();
+app.get("/api/orders/:id", async (req, res) => {
+  const db = await loadDb();
   const actorKey = getActorKey(db, req.sessionId);
   const id = String(req.params.id || "").trim();
   const order = (db.orders || []).find((o) => o.id === id && o.actorKey === actorKey);
@@ -957,8 +1180,8 @@ app.get("/api/orders/:id", (req, res) => {
   res.json({ order: hydrateOrderForClient(db, order) });
 });
 
-app.get("/api/orders/:id/tracking", (req, res) => {
-  const db = readDb();
+app.get("/api/orders/:id/tracking", async (req, res) => {
+  const db = await loadDb();
   const actorKey = getActorKey(db, req.sessionId);
   const id = String(req.params.id || "").trim();
   const order = (db.orders || []).find((o) => o.id === id && o.actorKey === actorKey);
@@ -967,8 +1190,8 @@ app.get("/api/orders/:id/tracking", (req, res) => {
   res.json({ orderId: id, trackingNumber: order.trackingNumber || "", status: order.status || "paid", history });
 });
 
-app.post("/api/orders/:id/status", (req, res) => {
-  const db = readDb();
+app.post("/api/orders/:id/status", async (req, res) => {
+  const db = await loadDb();
   const user = getUserBySession(db, req.sessionId);
   if (!user) return res.status(401).json({ error: "Please log in." });
 
@@ -998,12 +1221,12 @@ app.post("/api/orders/:id/status", (req, res) => {
     });
   }
 
-  writeDb(db);
+  await saveDb(db);
   res.json({ order: hydrateOrderForClient(db, order) });
 });
 
-app.post("/api/orders/:id/returns", (req, res) => {
-  const db = readDb();
+app.post("/api/orders/:id/returns", async (req, res) => {
+  const db = await loadDb();
   const user = getUserBySession(db, req.sessionId);
   if (!user) return res.status(401).json({ error: "Please log in." });
   const id = String(req.params.id || "").trim();
@@ -1025,20 +1248,20 @@ app.post("/api/orders/:id/returns", (req, res) => {
   db.returns = db.returns || [];
   db.returns.push(ticket);
   pushNotification(db, user.id, "return_requested", `Return requested for order ${id.slice(0, 8)}.`, { orderId: id });
-  writeDb(db);
+  await saveDb(db);
   res.status(201).json({ ticket });
 });
 
-app.get("/api/returns", (req, res) => {
-  const db = readDb();
+app.get("/api/returns", async (req, res) => {
+  const db = await loadDb();
   const user = getUserBySession(db, req.sessionId);
   if (!user) return res.status(401).json({ error: "Please log in." });
   const items = (db.returns || []).filter((r) => r.userId === user.id).slice(-50).reverse();
   res.json({ items });
 });
 
-app.get("/api/products", (req, res) => {
-  const db = readDb();
+app.get("/api/products", async (req, res) => {
+  const db = await loadDb();
   const q = sanitizeText(req.query.q, 120).toLowerCase();
   const category = sanitizeText(req.query.category, 40).toLowerCase();
   const sort = sanitizeText(req.query.sort, 40).toLowerCase();
@@ -1063,8 +1286,8 @@ app.get("/api/products", (req, res) => {
   res.json({ items });
 });
 
-app.get("/api/products/:productId", (req, res) => {
-  const db = readDb();
+app.get("/api/products/:productId", async (req, res) => {
+  const db = await loadDb();
   const productId = normalizeProductId(req.params.productId);
   const product = getCatalogAndPostProducts(db).find((item) => normalizeProductId(item.productId) === productId);
   if (!product) return res.status(404).json({ error: "Product not found." });
@@ -1072,46 +1295,46 @@ app.get("/api/products/:productId", (req, res) => {
   res.json({ product: { ...product, variants: ["default"], reviews } });
 });
 
-app.get("/api/wishlist", (req, res) => {
-  const db = readDb();
+app.get("/api/wishlist", async (req, res) => {
+  const db = await loadDb();
   const actorKey = getActorKey(db, req.sessionId);
   const ids = (db.wishlists && db.wishlists[actorKey]) || [];
   res.json({ productIds: ids });
 });
 
-app.post("/api/wishlist/:productId", (req, res) => {
-  const db = readDb();
+app.post("/api/wishlist/:productId", async (req, res) => {
+  const db = await loadDb();
   const actorKey = getActorKey(db, req.sessionId);
   const productId = normalizeProductId(req.params.productId);
   if (!productId) return res.status(400).json({ error: "Product ID required." });
   db.wishlists = db.wishlists || {};
   if (!Array.isArray(db.wishlists[actorKey])) db.wishlists[actorKey] = [];
   if (!db.wishlists[actorKey].includes(productId)) db.wishlists[actorKey].push(productId);
-  writeDb(db);
+  await saveDb(db);
   res.status(201).json({ productIds: db.wishlists[actorKey] });
 });
 
-app.delete("/api/wishlist/:productId", (req, res) => {
-  const db = readDb();
+app.delete("/api/wishlist/:productId", async (req, res) => {
+  const db = await loadDb();
   const actorKey = getActorKey(db, req.sessionId);
   const productId = normalizeProductId(req.params.productId);
   db.wishlists = db.wishlists || {};
   const list = Array.isArray(db.wishlists[actorKey]) ? db.wishlists[actorKey] : [];
   db.wishlists[actorKey] = list.filter((id) => id !== productId);
-  writeDb(db);
+  await saveDb(db);
   res.json({ productIds: db.wishlists[actorKey] });
 });
 
-app.get("/api/addresses", (req, res) => {
-  const db = readDb();
+app.get("/api/addresses", async (req, res) => {
+  const db = await loadDb();
   const user = getUserBySession(db, req.sessionId);
   if (!user) return res.status(401).json({ error: "Please log in." });
   db.addresses = db.addresses || {};
   res.json({ items: db.addresses[user.id] || [] });
 });
 
-app.post("/api/addresses", (req, res) => {
-  const db = readDb();
+app.post("/api/addresses", async (req, res) => {
+  const db = await loadDb();
   const user = getUserBySession(db, req.sessionId);
   if (!user) return res.status(401).json({ error: "Please log in." });
   const label = sanitizeText(req.body.label, 60) || "Address";
@@ -1123,24 +1346,24 @@ app.post("/api/addresses", (req, res) => {
   db.addresses = db.addresses || {};
   if (!Array.isArray(db.addresses[user.id])) db.addresses[user.id] = [];
   db.addresses[user.id].push(item);
-  writeDb(db);
+  await saveDb(db);
   res.status(201).json({ item, items: db.addresses[user.id] });
 });
 
-app.delete("/api/addresses/:id", (req, res) => {
-  const db = readDb();
+app.delete("/api/addresses/:id", async (req, res) => {
+  const db = await loadDb();
   const user = getUserBySession(db, req.sessionId);
   if (!user) return res.status(401).json({ error: "Please log in." });
   const id = String(req.params.id || "").trim();
   db.addresses = db.addresses || {};
   const list = Array.isArray(db.addresses[user.id]) ? db.addresses[user.id] : [];
   db.addresses[user.id] = list.filter((item) => item.id !== id);
-  writeDb(db);
+  await saveDb(db);
   res.json({ items: db.addresses[user.id] });
 });
 
-app.get("/api/notifications", (req, res) => {
-  const db = readDb();
+app.get("/api/notifications", async (req, res) => {
+  const db = await loadDb();
   const user = getUserBySession(db, req.sessionId);
   if (!user) return res.status(401).json({ error: "Please log in." });
   const limit = Math.max(1, Math.min(200, Number(req.query.limit) || 50));
@@ -1148,8 +1371,8 @@ app.get("/api/notifications", (req, res) => {
   res.json({ items });
 });
 
-app.post("/api/notifications/:id/read", (req, res) => {
-  const db = readDb();
+app.post("/api/notifications/:id/read", async (req, res) => {
+  const db = await loadDb();
   const user = getUserBySession(db, req.sessionId);
   if (!user) return res.status(401).json({ error: "Please log in." });
   const id = String(req.params.id || "").trim();
@@ -1157,24 +1380,24 @@ app.post("/api/notifications/:id/read", (req, res) => {
   const item = list.find((n) => n.id === id);
   if (!item) return res.status(404).json({ error: "Notification not found." });
   item.read = true;
-  writeDb(db);
+  await saveDb(db);
   res.json({ ok: true });
 });
 
-app.post("/api/auth/password-reset/request", (req, res) => {
-  const db = readDb();
+app.post("/api/auth/password-reset/request", async (req, res) => {
+  const db = await loadDb();
   const email = sanitizeEmail(req.body.email);
   const user = (db.users || []).find((u) => u.email === email);
   if (!user) return res.json({ ok: true });
   const token = generateId();
   db.passwordResetTokens = db.passwordResetTokens || {};
   db.passwordResetTokens[user.id] = { token, expiresAt: new Date(Date.now() + 1000 * 60 * 30).toISOString() };
-  writeDb(db);
+  await saveDb(db);
   res.json({ ok: true, token });
 });
 
-app.post("/api/auth/password-reset/confirm", (req, res) => {
-  const db = readDb();
+app.post("/api/auth/password-reset/confirm", async (req, res) => {
+  const db = await loadDb();
   const email = sanitizeEmail(req.body.email);
   const token = sanitizeText(req.body.token, 120);
   const newPassword = String(req.body.newPassword || "");
@@ -1188,23 +1411,23 @@ app.post("/api/auth/password-reset/confirm", (req, res) => {
   user.passwordSalt = generateId();
   user.passwordHash = hashPassword(newPassword, user.passwordSalt);
   delete db.passwordResetTokens[user.id];
-  writeDb(db);
+  await saveDb(db);
   res.json({ ok: true });
 });
 
-app.post("/api/auth/email-verification/request", (req, res) => {
-  const db = readDb();
+app.post("/api/auth/email-verification/request", async (req, res) => {
+  const db = await loadDb();
   const user = getUserBySession(db, req.sessionId);
   if (!user) return res.status(401).json({ error: "Please log in." });
   db.emailVerificationTokens = db.emailVerificationTokens || {};
   const token = generateId();
   db.emailVerificationTokens[user.id] = { token, expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString() };
-  writeDb(db);
+  await saveDb(db);
   res.json({ ok: true, token });
 });
 
-app.post("/api/auth/email-verification/verify", (req, res) => {
-  const db = readDb();
+app.post("/api/auth/email-verification/verify", async (req, res) => {
+  const db = await loadDb();
   const user = getUserBySession(db, req.sessionId);
   if (!user) return res.status(401).json({ error: "Please log in." });
   const token = sanitizeText(req.body.token, 120);
@@ -1214,12 +1437,12 @@ app.post("/api/auth/email-verification/verify", (req, res) => {
   }
   user.emailVerified = true;
   delete db.emailVerificationTokens[user.id];
-  writeDb(db);
+  await saveDb(db);
   res.json({ ok: true });
 });
 
-app.get("/api/seller/dashboard", (req, res) => {
-  const db = readDb();
+app.get("/api/seller/dashboard", async (req, res) => {
+  const db = await loadDb();
   const user = getUserBySession(db, req.sessionId);
   if (!user) return res.status(401).json({ error: "Please log in." });
   const posts = (db.productPosts || []).filter((p) => p.sellerUserId === user.id);
@@ -1236,8 +1459,8 @@ app.get("/api/seller/dashboard", (req, res) => {
   });
 });
 
-app.post("/api/seller/payouts/request", (req, res) => {
-  const db = readDb();
+app.post("/api/seller/payouts/request", async (req, res) => {
+  const db = await loadDb();
   const user = getUserBySession(db, req.sessionId);
   if (!user) return res.status(401).json({ error: "Please log in." });
   const amount = roundMoney(Number(req.body.amount));
@@ -1245,42 +1468,42 @@ app.post("/api/seller/payouts/request", (req, res) => {
   const request = { id: generateId(), sellerUserId: user.id, amount, status: "requested", createdAt: new Date().toISOString() };
   db.sellerPayouts = db.sellerPayouts || [];
   db.sellerPayouts.push(request);
-  writeDb(db);
+  await saveDb(db);
   res.status(201).json({ request });
 });
 
-app.get("/api/seller/payouts", (req, res) => {
-  const db = readDb();
+app.get("/api/seller/payouts", async (req, res) => {
+  const db = await loadDb();
   const user = getUserBySession(db, req.sessionId);
   if (!user) return res.status(401).json({ error: "Please log in." });
   const items = (db.sellerPayouts || []).filter((p) => p.sellerUserId === user.id).slice(-100).reverse();
   res.json({ items });
 });
 
-app.post("/api/payments/intent", (req, res) => {
+app.post("/api/payments/intent", async (req, res) => {
   const amount = roundMoney(Number(req.body.amount));
   if (!Number.isFinite(amount) || amount <= 0) return res.status(400).json({ error: "Invalid payment amount." });
   const intentId = `pi_${generateId().replace(/-/g, "").slice(0, 20)}`;
   res.json({ id: intentId, status: "requires_confirmation", clientSecret: `${intentId}_secret_mock` });
 });
 
-app.post("/api/payments/webhook", (req, res) => {
+app.post("/api/payments/webhook", async (req, res) => {
   res.json({ ok: true, receivedAt: new Date().toISOString() });
 });
 
-app.get("/api/security/csrf", (req, res) => {
-  const db = readDb();
+app.get("/api/security/csrf", async (req, res) => {
+  const db = await loadDb();
   const session = db.sessions[req.sessionId];
   if (!session) return res.status(400).json({ error: "Session unavailable." });
   const token = generateId();
   session.csrfToken = token;
   session.csrfTokenAt = new Date().toISOString();
-  writeDb(db);
+  await saveDb(db);
   res.json({ token });
 });
 
-app.post("/api/waitlist", (req, res) => {
-  const db = readDb();
+app.post("/api/waitlist", async (req, res) => {
+  const db = await loadDb();
   const name = sanitizeName(req.body.name);
   const email = sanitizeEmail(req.body.email);
   const role = sanitizeName(req.body.role || "Investor");
@@ -1304,12 +1527,12 @@ app.post("/api/waitlist", (req, res) => {
     createdAt: new Date().toISOString()
   };
   db.waitlist.push(entry);
-  writeDb(db);
+  await saveDb(db);
   res.status(201).json({ entry });
 });
 
-app.post("/api/product-posts", (req, res) => {
-  const db = readDb();
+app.post("/api/product-posts", async (req, res) => {
+  const db = await loadDb();
   const actorKey = getActorKey(db, req.sessionId);
   const session = db.sessions[req.sessionId];
   const user = session && session.userId ? db.users.find((item) => item.id === session.userId) : null;
@@ -1364,7 +1587,7 @@ app.post("/api/product-posts", (req, res) => {
     createdAt: new Date().toISOString()
   };
   db.productPosts.push(post);
-  writeDb(db);
+  await saveDb(db);
   res.status(201).json({
     post: {
       ...post,
@@ -1373,8 +1596,8 @@ app.post("/api/product-posts", (req, res) => {
   });
 });
 
-app.get("/api/product-posts", (req, res) => {
-  const db = readDb();
+app.get("/api/product-posts", async (req, res) => {
+  const db = await loadDb();
   const actorKey = getActorKey(db, req.sessionId);
   const limit = Math.max(1, Math.min(100, Number(req.query.limit) || 50));
   const mineOnly = String(req.query.mine || "").toLowerCase() === "true" || String(req.query.mine || "") === "1";
@@ -1401,8 +1624,8 @@ app.get("/api/product-posts", (req, res) => {
 
 const validImagePositions = ["left", "right", "top", "bottom", "none"];
 
-app.post("/api/ad-posts", (req, res) => {
-  const db = readDb();
+app.post("/api/ad-posts", async (req, res) => {
+  const db = await loadDb();
   const session = db.sessions[req.sessionId];
   const user = session && session.userId ? db.users.find((item) => item.id === session.userId) : null;
 
@@ -1435,20 +1658,20 @@ app.post("/api/ad-posts", (req, res) => {
   };
   db.adPosts = db.adPosts || [];
   db.adPosts.push(ad);
-  writeDb(db);
+  await saveDb(db);
   res.status(201).json({ ad });
 });
 
-app.get("/api/ad-posts", (req, res) => {
-  const db = readDb();
+app.get("/api/ad-posts", async (req, res) => {
+  const db = await loadDb();
   const limit = Math.max(1, Math.min(100, Number(req.query.limit) || 50));
   let items = Array.isArray(db.adPosts) ? db.adPosts : [];
   items = items.slice(-limit).reverse();
   res.json({ items });
 });
 
-app.delete("/api/ad-posts/:id", (req, res) => {
-  const db = readDb();
+app.delete("/api/ad-posts/:id", async (req, res) => {
+  const db = await loadDb();
   const session = db.sessions[req.sessionId];
   const user = session && session.userId ? db.users.find((item) => item.id === session.userId) : null;
   if (!user || user.role !== "advertiser") {
@@ -1467,7 +1690,7 @@ app.delete("/api/ad-posts/:id", (req, res) => {
     return;
   }
   db.adPosts.splice(index, 1);
-  writeDb(db);
+  await saveDb(db);
   res.json({ ok: true });
 });
 
@@ -1480,8 +1703,8 @@ function getServiceProviderRatings(db, providerId) {
   return { average: roundMoney(sum / count), count };
 }
 
-app.get("/api/service-providers", (req, res) => {
-  const db = readDb();
+app.get("/api/service-providers", async (req, res) => {
+  const db = await loadDb();
   const list = Array.isArray(db.serviceProviders) ? db.serviceProviders : [];
   const activeOnly = String(req.query.active).toLowerCase() === "true";
   let items = activeOnly ? list.filter((p) => p.isActive !== false) : list;
@@ -1492,8 +1715,8 @@ app.get("/api/service-providers", (req, res) => {
   res.json({ items });
 });
 
-app.post("/api/service-providers/:id/rate", (req, res) => {
-  const db = readDb();
+app.post("/api/service-providers/:id/rate", async (req, res) => {
+  const db = await loadDb();
   const session = db.sessions[req.sessionId];
   const user = session && session.userId ? db.users.find((item) => item.id === session.userId) : null;
   if (!user) {
@@ -1518,13 +1741,13 @@ app.post("/api/service-providers/:id/rate", (req, res) => {
   const entry = { userId: user.id, stars, createdAt: new Date().toISOString() };
   if (existing >= 0) ratings[existing] = entry;
   else ratings.push(entry);
-  writeDb(db);
+  await saveDb(db);
   const { average, count } = getServiceProviderRatings(db, id);
   res.json({ ok: true, ratingAverage: average, ratingCount: count });
 });
 
-app.post("/api/admin/service-providers", requireAdmin, (req, res) => {
-  const db = readDb();
+app.post("/api/admin/service-providers", requireAdmin, async (req, res) => {
+  const db = await loadDb();
   const name = sanitizeText(req.body.name, 120);
   const address = sanitizeText(req.body.address, 300);
   const phone = sanitizeText(req.body.phone, 40);
@@ -1547,13 +1770,13 @@ app.post("/api/admin/service-providers", requireAdmin, (req, res) => {
   };
   db.serviceProviders = db.serviceProviders || [];
   db.serviceProviders.push(provider);
-  writeDb(db);
+  await saveDb(db);
   const { average, count } = getServiceProviderRatings(db, provider.id);
   res.status(201).json({ provider: { ...provider, ratingAverage: average, ratingCount: count } });
 });
 
-app.get("/api/admin/service-providers", requireAdmin, (req, res) => {
-  const db = readDb();
+app.get("/api/admin/service-providers", requireAdmin, async (req, res) => {
+  const db = await loadDb();
   const list = Array.isArray(db.serviceProviders) ? db.serviceProviders : [];
   const items = list.map((p) => {
     const { average, count } = getServiceProviderRatings(db, p.id);
@@ -1562,8 +1785,8 @@ app.get("/api/admin/service-providers", requireAdmin, (req, res) => {
   res.json({ items });
 });
 
-app.get("/api/admin/product-posts", requireAdmin, (req, res) => {
-  const db = readDb();
+app.get("/api/admin/product-posts", requireAdmin, async (req, res) => {
+  const db = await loadDb();
   const items = (db.productPosts || []).slice().reverse().map((post) => ({
     ...post,
     moderationStatus: (db.productModeration || {})[normalizeProductId(post.productId || getPostProductId(post.id))] || "approved"
@@ -1571,8 +1794,8 @@ app.get("/api/admin/product-posts", requireAdmin, (req, res) => {
   res.json({ items });
 });
 
-app.post("/api/admin/product-posts/:id/moderate", requireAdmin, (req, res) => {
-  const db = readDb();
+app.post("/api/admin/product-posts/:id/moderate", requireAdmin, async (req, res) => {
+  const db = await loadDb();
   const id = String(req.params.id || "").trim();
   const status = sanitizeText(req.body.status, 20).toLowerCase();
   if (!["approved", "rejected"].includes(status)) return res.status(400).json({ error: "Invalid moderation status." });
@@ -1581,24 +1804,24 @@ app.post("/api/admin/product-posts/:id/moderate", requireAdmin, (req, res) => {
   const productId = normalizeProductId(post.productId || getPostProductId(post.id));
   db.productModeration = db.productModeration || {};
   db.productModeration[productId] = status;
-  writeDb(db);
+  await saveDb(db);
   res.json({ ok: true, productId, status });
 });
 
-app.post("/api/admin/users/:id/flag", requireAdmin, (req, res) => {
-  const db = readDb();
+app.post("/api/admin/users/:id/flag", requireAdmin, async (req, res) => {
+  const db = await loadDb();
   const id = String(req.params.id || "").trim();
   const reason = sanitizeText(req.body.reason, 220) || "Flagged by admin";
   const user = (db.users || []).find((u) => u.id === id);
   if (!user) return res.status(404).json({ error: "User not found." });
   db.userFlags = db.userFlags || {};
   db.userFlags[id] = { flaggedAt: new Date().toISOString(), reason };
-  writeDb(db);
+  await saveDb(db);
   res.json({ ok: true, flagged: db.userFlags[id] });
 });
 
-app.get("/api/admin/users/:id/details", requireAdmin, (req, res) => {
-  const db = readDb();
+app.get("/api/admin/users/:id/details", requireAdmin, async (req, res) => {
+  const db = await loadDb();
   const id = String(req.params.id || "").trim();
   const user = (db.users || []).find((u) => u.id === id);
   if (!user) return res.status(404).json({ error: "User not found." });
@@ -1639,8 +1862,8 @@ app.get("/api/admin/users/:id/details", requireAdmin, (req, res) => {
   });
 });
 
-app.get("/api/admin/orders/:id", requireAdmin, (req, res) => {
-  const db = readDb();
+app.get("/api/admin/orders/:id", requireAdmin, async (req, res) => {
+  const db = await loadDb();
   const id = String(req.params.id || "").trim();
   const order = (db.orders || []).find((o) => o.id === id);
   if (!order) return res.status(404).json({ error: "Order not found." });
@@ -1657,8 +1880,8 @@ app.get("/api/admin/orders/:id", requireAdmin, (req, res) => {
   });
 });
 
-app.get("/api/admin/analytics", requireAdmin, (req, res) => {
-  const db = readDb();
+app.get("/api/admin/analytics", requireAdmin, async (req, res) => {
+  const db = await loadDb();
   const orders = Array.isArray(db.orders) ? db.orders : [];
   const products = getCatalogAndPostProducts(db);
   const byDay = {};
@@ -1685,15 +1908,15 @@ app.get("/api/admin/analytics", requireAdmin, (req, res) => {
   });
 });
 
-app.get("/api/admin/backup", requireAdmin, (req, res) => {
-  const db = readDb();
+app.get("/api/admin/backup", requireAdmin, async (req, res) => {
+  const db = await loadDb();
   res.setHeader("Content-Type", "application/json");
   res.setHeader("Content-Disposition", `attachment; filename=\"nova-backup-${new Date().toISOString().slice(0, 10)}.json\"`);
   res.send(JSON.stringify(db, null, 2));
 });
 
-app.get("/api/catalog/stats", (req, res) => {
-  const db = readDb();
+app.get("/api/catalog/stats", async (req, res) => {
+  const db = await loadDb();
   const catalogItems = Object.keys(defaultCatalogStock).map((productId) => {
     const sold = getCatalogSoldCount(db, productId);
     const stockTotal = getCatalogStockForId(db, productId);
@@ -1720,8 +1943,8 @@ app.get("/api/catalog/stats", (req, res) => {
   res.json({ items: [...catalogItems, ...postItems] });
 });
 
-app.get("/api/admin/overview", requireAdmin, (req, res) => {
-  const db = readDb();
+app.get("/api/admin/overview", requireAdmin, async (req, res) => {
+  const db = await loadDb();
   const now = new Date().toISOString();
 
   const walletEntries = Object.values(db.wallets || {});
@@ -1783,27 +2006,43 @@ app.get("/api/admin/overview", requireAdmin, (req, res) => {
   });
 });
 
-app.post("/api/admin/wallets/reset-all", requireAdmin, (req, res) => {
-  const db = readDb();
+app.post("/api/admin/wallets/reset-all", requireAdmin, async (req, res) => {
+  const db = await loadDb();
   const walletKeys = Object.keys(db.wallets || {});
   walletKeys.forEach((key) => {
     db.wallets[key] = getDefaultWallet();
   });
-  writeDb(db);
+  await saveDb(db);
   res.json({ ok: true, resetCount: walletKeys.length });
 });
 
-app.get("/", (req, res) => {
+app.get("/", async (req, res) => {
   res.sendFile(path.join(__dirname, "welcome.html"));
 });
 
 app.use(express.static(__dirname));
 
-app.listen(port, () => {
-  const db = readDb();
-  if (ensureAdvertiserUser(db)) {
-    writeDb(db);
-    console.log("Advertiser user created: info@novashop.com");
+app.use((err, req, res, next) => {
+  console.error("Unhandled error:", err);
+  if (res.headersSent) {
+    next(err);
+    return;
   }
-  console.log(`Nova Market server running on http://localhost:${port}`);
+  if (req.originalUrl && req.originalUrl.startsWith("/api/")) {
+    res.status(500).json({ error: "Internal server error." });
+    return;
+  }
+  res.status(500).type("text").send("Internal Server Error");
 });
+
+if (!process.env.VERCEL) {
+  app.listen(port, async () => {
+    const db = await loadDb();
+    if (ensureAdvertiserUser(db)) {
+      await saveDb(db);
+      console.log("Advertiser user created: info@novashop.com");
+    }
+    console.log(`Nova Market server running on http://localhost:${port}`);
+  });
+}
+module.exports = app;
