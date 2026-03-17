@@ -1,5 +1,11 @@
 const crypto = require("crypto");
-require("dotenv").config();
+// Vercel provides environment variables at runtime. `dotenv` is only needed for local dev,
+// and in some serverless bundles it may not be packaged, so treat it as optional.
+try {
+  require("dotenv").config();
+} catch (err) {
+  // no-op
+}
 const path = require("path");
 const express = require("express");
 const cookieParser = require("cookie-parser");
